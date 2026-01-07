@@ -590,7 +590,8 @@ class SetupWindow(tk.Frame):
         # Add tasks
         for i, task in enumerate(self.current_schedule.tasks):
             duration_str = f"{task.duration_seconds // 3600}h {(task.duration_seconds % 3600) // 60}m {task.duration_seconds % 60}s"
-            warnings_str = ', '.join([f"{w}s" for w in task.warning_points_seconds[:3]])
+            # Display warnings in minutes (converted from seconds)
+            warnings_str = ', '.join([f"{w // 60}min" for w in task.warning_points_seconds[:3] if w > 0])
 
             self.task_tree.insert('', 'end', text=f"{i+1}",
                                  values=(task.title, duration_str, warnings_str))
