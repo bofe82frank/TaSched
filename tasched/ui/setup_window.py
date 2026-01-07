@@ -89,7 +89,7 @@ class TaskDialog:
         self.warnings_entry = tk.Entry(main_frame, font=(FONT_FAMILY, FONT_SIZE_NORMAL), width=40)
         self.warnings_entry.grid(row=2, column=1, columnspan=2, sticky='ew', pady=5)
 
-        tk.Label(main_frame, text="(e.g., 600,300,60 for 10min, 5min, 1min warnings)",
+        tk.Label(main_frame, text="(Enter minutes, e.g., 10,5,1 for warnings at 10min, 5min, 1min before)",
                 font=(FONT_FAMILY, FONT_SIZE_SMALL), bg=self.theme.background,
                 fg=self.theme.footer).grid(row=3, column=1, columnspan=2, sticky='w')
 
@@ -149,7 +149,8 @@ class TaskDialog:
         self.seconds_var.set(str(seconds))
 
         # Warning points
-        warnings_str = ','.join(map(str, self.task.warning_points_seconds))
+        # Convert seconds to minutes for display
+        warnings_str = ','.join([str(w // 60) for w in self.task.warning_points_seconds])
         self.warnings_entry.insert(0, warnings_str)
 
         # Sound
@@ -190,7 +191,8 @@ class TaskDialog:
         warnings_str = self.warnings_entry.get().strip()
         if warnings_str:
             try:
-                warning_points = [int(x.strip()) for x in warnings_str.split(',') if x.strip()]
+                # Convert minutes to seconds
+                warning_points = [int(x.strip()) * 60 for x in warnings_str.split(',') if x.strip()]
             except ValueError:
                 messagebox.showerror("Error", "Invalid warning points format")
                 return
