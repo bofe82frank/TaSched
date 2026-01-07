@@ -9,7 +9,7 @@ APP_VERSION = "1.0.0"
 APP_FULL_NAME = "TaSched - Task Scheduler & Countdown Orchestrator"
 APP_TAGLINE = "Schedule your day. Run it hands-free."
 COMPANY = "WAEC"
-DEPARTMENT = "Technology & Innovation"
+DEPARTMENT = "Psychometric Department | Technology & Innovation"
 PRODUCT_NAME = "TaSched"
 
 # Schedule Constraints
