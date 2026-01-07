@@ -30,7 +30,7 @@ class TaSchedApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(APP_FULL_NAME)
-        self.root.geometry("900x700")
+        self.root.state('zoomed')  # Maximized window on launch
 
         # Services
         self.theme = get_theme_service()

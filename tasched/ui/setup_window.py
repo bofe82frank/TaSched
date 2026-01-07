@@ -27,7 +27,7 @@ class TaskDialog:
         # Create dialog
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Add Task" if task is None else "Edit Task")
-        self.dialog.geometry("600x700")
+        self.dialog.geometry("900x650")  # Landscape orientation
         self.dialog.configure(bg=self.theme.background)
         self.dialog.transient(parent)
         self.dialog.grab_set()
