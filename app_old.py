@@ -30,7 +30,7 @@ class TaSchedApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(APP_FULL_NAME)
-        self.root.geometry("900x700")
+        self.root.geometry("800x600")
 
         # Services
         self.theme = get_theme_service()
@@ -58,6 +58,7 @@ class TaSchedApp:
 
         # Configure root window
         self._setup_root()
+        self._create_simple_setup_ui()
 
         # Set icon
         icon_path = self.resource.get_image(WAEC_ICON)
@@ -74,12 +75,152 @@ class TaSchedApp:
         """Configure root window"""
         self.root.configure(bg=self.theme.background)
 
-        # Create Setup Window
-        self.setup_window = SetupWindow(self.root, on_start_callback=self._start_from_setup)
-        self.setup_window.pack(fill=tk.BOTH, expand=True)
+    def _create_simple_setup_ui(self):
+        """Create a simple setup UI for testing"""
+        # Header
+        header_frame = tk.Frame(self.root, bg=self.theme.background, height=100)
+        header_frame.pack(fill=tk.X, padx=20, pady=20)
+        header_frame.pack_propagate(False)
 
-    def _start_from_setup(self, schedule: Schedule):
-        """Start schedule from setup window"""
+        title_label = tk.Label(
+            header_frame,
+            text=APP_FULL_NAME,
+            font=(FONT_FAMILY, 28, 'bold'),
+            bg=self.theme.background,
+            fg=self.theme.accent_1
+        )
+        title_label.pack()
+
+        tagline_label = tk.Label(
+            header_frame,
+            text=APP_TAGLINE,
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL),
+            bg=self.theme.background,
+            fg=self.theme.accent_3
+        )
+        tagline_label.pack()
+
+        # Main content
+        content_frame = tk.Frame(self.root, bg=self.theme.background)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=20)
+
+        # Quick start section
+        quick_label = tk.Label(
+            content_frame,
+            text="Quick Start Demo",
+            font=(FONT_FAMILY, FONT_SIZE_LARGE, 'bold'),
+            **self.theme.get_label_style()
+        )
+        quick_label.pack(pady=(0, 20))
+
+        info_label = tk.Label(
+            content_frame,
+            text="Click the button below to start a demo schedule with 3 short tasks\n"
+                 "(15 seconds each with 5-second warnings)",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL),
+            **self.theme.get_label_style(),
+            justify=tk.CENTER
+        )
+        info_label.pack(pady=10)
+
+        # Demo button
+        demo_button = tk.Button(
+            content_frame,
+            text="▶ Start Demo Schedule",
+            font=(FONT_FAMILY, FONT_SIZE_LARGE, 'bold'),
+            command=self._start_demo,
+            **self.theme.get_button_style(),
+            width=25,
+            height=2
+        )
+        demo_button.pack(pady=30)
+
+        # Theme selector
+        theme_frame = tk.Frame(content_frame, bg=self.theme.background)
+        theme_frame.pack(pady=20)
+
+        theme_label = tk.Label(
+            theme_frame,
+            text="Theme:",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+            **self.theme.get_label_style()
+        )
+        theme_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        for theme_name in ["WAEC", "Corporate", "Indigenous"]:
+            btn = tk.Button(
+                theme_frame,
+                text=theme_name,
+                font=(FONT_FAMILY, FONT_SIZE_SMALL),
+                command=lambda t=theme_name: self._change_theme(t),
+                bg=self.theme.accent_1 if theme_name == self.settings.theme else self.theme.background,
+                fg=self.theme.primary_text,
+                relief='flat',
+                bd=1,
+                padx=15,
+                pady=5
+            )
+            btn.pack(side=tk.LEFT, padx=5)
+
+        # Footer
+        footer_label = tk.Label(
+            self.root,
+            text=f"{APP_NAME} v{APP_VERSION} | {COMPANY} - {DEPARTMENT}",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL),
+            bg=self.theme.background,
+            fg=self.theme.footer
+        )
+        footer_label.pack(side=tk.BOTTOM, pady=10)
+
+    def _change_theme(self, theme_name: str):
+        """Change application theme"""
+        self.theme.set_theme(theme_name)
+        self.settings.theme = theme_name
+        self.storage.save_settings(self.settings)
+
+        # Recreate UI with new theme
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        self._setup_root()
+        self._create_simple_setup_ui()
+
+    def _start_demo(self):
+        """Start a demo schedule"""
+        # Create demo tasks
+        task1 = Task(
+            title="Task 1: Reading",
+            duration_seconds=15,
+            warning_points_seconds=[5],
+            mode=TASK_MODE_SEQUENTIAL
+        )
+
+        task2 = Task(
+            title="Task 2: Writing",
+            duration_seconds=15,
+            warning_points_seconds=[5],
+            mode=TASK_MODE_SEQUENTIAL
+        )
+
+        task3 = Task(
+            title="Task 3: Break Time",
+            duration_seconds=15,
+            warning_points_seconds=[5],
+            mode=TASK_MODE_SEQUENTIAL
+        )
+
+        # Create schedule
+        schedule = Schedule(
+            name="Demo Schedule",
+            auto_advance=True,
+            gap_between_tasks=0
+        )
+        schedule.add_task(task1)
+        schedule.add_task(task2)
+        schedule.add_task(task3)
+
+        # Save schedule
+        self.storage.save_schedule(schedule)
+
         # Load into scheduler
         self.scheduler.load_schedule(schedule)
 
