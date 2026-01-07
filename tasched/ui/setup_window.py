@@ -46,6 +46,32 @@ class TaskDialog:
 
     def _create_widgets(self):
         """Create dialog widgets"""
+        # Logo header frame
+        logo_frame = tk.Frame(self.dialog, bg=self.theme.background, height=70)
+        logo_frame.pack(fill=tk.X, padx=20, pady=(10, 0))
+        logo_frame.pack_propagate(False)
+
+        # WAEC Logo
+        logo_path = self.resource.get_image(WAEC_LOGO)
+        if logo_path:
+            try:
+                from PIL import Image, ImageTk
+                logo_img = Image.open(logo_path)
+                logo_img = logo_img.resize((60, 60), Image.Resampling.LANCZOS)
+                logo_photo = ImageTk.PhotoImage(logo_img)
+
+                logo_label = tk.Label(logo_frame, image=logo_photo, bg=self.theme.background)
+                logo_label.image = logo_photo  # Keep reference
+                logo_label.pack(side=tk.LEFT, padx=(0, 15))
+            except Exception as e:
+                print(f"Error loading logo: {e}")
+
+        # Title label
+        title_label = tk.Label(logo_frame, text="Task Configuration",
+                              font=(FONT_FAMILY, 18, 'bold'),
+                              bg=self.theme.background, fg=self.theme.accent_1)
+        title_label.pack(side=tk.LEFT, anchor='w')
+
         # Main frame
         main_frame = tk.Frame(self.dialog, bg=self.theme.background, padx=20, pady=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -93,36 +119,52 @@ class TaskDialog:
                 font=(FONT_FAMILY, FONT_SIZE_SMALL), bg=self.theme.background,
                 fg=self.theme.footer).grid(row=3, column=1, columnspan=2, sticky='w')
 
-        # Sound Selection
-        tk.Label(main_frame, text="Alert Sound:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+        # Warning Sound
+        tk.Label(main_frame, text="Warning Sound:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
                 bg=self.theme.background, fg=self.theme.primary_text).grid(row=4, column=0, sticky='w', pady=5)
 
-        self.sound_var = tk.StringVar()
+        self.warning_sound_var = tk.StringVar()
         sound_files = self.resource.list_sound_names()
-        self.sound_combo = ttk.Combobox(main_frame, textvariable=self.sound_var,
-                                       values=sound_files, state='readonly', width=37)
-        self.sound_combo.grid(row=4, column=1, columnspan=2, sticky='ew', pady=5)
+        self.warning_combo = ttk.Combobox(main_frame, textvariable=self.warning_sound_var,
+                                         values=sound_files, state='readonly', width=37)
+        self.warning_combo.grid(row=4, column=1, columnspan=2, sticky='ew', pady=5)
+
+        # Time-Up Sound
+        tk.Label(main_frame, text="Time-Up Sound:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=5, column=0, sticky='w', pady=5)
+
+        self.timeup_sound_var = tk.StringVar()
+        self.timeup_combo = ttk.Combobox(main_frame, textvariable=self.timeup_sound_var,
+                                        values=sound_files, state='readonly', width=37)
+        self.timeup_combo.grid(row=5, column=1, columnspan=2, sticky='ew', pady=5)
+
+        # Browse button for custom sounds
+        tk.Button(main_frame, text="📂 Browse for Custom Sound...",
+                 command=self._browse_sound,
+                 font=(FONT_FAMILY, FONT_SIZE_SMALL),
+                 bg=self.theme.accent_1, fg=self.theme.background,
+                 padx=15, pady=5).grid(row=6, column=1, sticky='w', pady=10)
 
         # Fullscreen Time-up
         self.fullscreen_var = tk.BooleanVar(value=True)
         tk.Checkbutton(main_frame, text="Fullscreen Time-Up Alert", variable=self.fullscreen_var,
                       font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
                       fg=self.theme.primary_text, selectcolor=self.theme.background,
-                      activebackground=self.theme.background).grid(row=5, column=1, sticky='w', pady=10)
+                      activebackground=self.theme.background).grid(row=7, column=1, sticky='w', pady=10)
 
         # Ticker Settings
         tk.Label(main_frame, text="Ticker Settings:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
-                bg=self.theme.background, fg=self.theme.primary_text).grid(row=6, column=0, sticky='w', pady=5)
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=8, column=0, sticky='w', pady=5)
 
         self.ticker_enabled_var = tk.BooleanVar(value=False)
         tk.Checkbutton(main_frame, text="Enable Ticker", variable=self.ticker_enabled_var,
                       font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
                       fg=self.theme.primary_text, selectcolor=self.theme.background,
-                      activebackground=self.theme.background).grid(row=6, column=1, sticky='w', pady=5)
+                      activebackground=self.theme.background).grid(row=8, column=1, sticky='w', pady=5)
 
         # Buttons
         button_frame = tk.Frame(main_frame, bg=self.theme.background)
-        button_frame.grid(row=7, column=0, columnspan=3, pady=20)
+        button_frame.grid(row=9, column=0, columnspan=3, pady=20)
 
         tk.Button(button_frame, text="Save", command=self._save,
                  font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
@@ -153,13 +195,20 @@ class TaskDialog:
         warnings_str = ','.join([str(w // 60) for w in self.task.warning_points_seconds])
         self.warnings_entry.insert(0, warnings_str)
 
-        # Sound
-        if self.task.sound_profile.timeup_sound:
-            sound_files = self.resource.list_sound_names()
-            if self.task.sound_profile.timeup_sound in sound_files:
-                self.sound_var.set(self.task.sound_profile.timeup_sound)
+        # Sounds
+        sound_files = self.resource.list_sound_names()
+
+        if self.task.sound_profile.warning_sound:
+            if self.task.sound_profile.warning_sound in sound_files:
+                self.warning_sound_var.set(self.task.sound_profile.warning_sound)
             elif sound_files:
-                self.sound_var.set(sound_files[0])
+                self.warning_sound_var.set(sound_files[0])
+
+        if self.task.sound_profile.timeup_sound:
+            if self.task.sound_profile.timeup_sound in sound_files:
+                self.timeup_sound_var.set(self.task.sound_profile.timeup_sound)
+            elif sound_files:
+                self.timeup_sound_var.set(sound_files[0])
 
         # Display options
         self.fullscreen_var.set(self.task.display.fullscreen_timeup)
@@ -206,10 +255,13 @@ class TaskDialog:
         self.task.warning_points_seconds = warning_points
 
         # Sound profile
-        sound_file = self.sound_var.get()
-        if sound_file:
-            self.task.sound_profile.warning_sound = sound_file
-            self.task.sound_profile.timeup_sound = sound_file
+        warning_sound = self.warning_sound_var.get()
+        timeup_sound = self.timeup_sound_var.get()
+
+        if warning_sound:
+            self.task.sound_profile.warning_sound = warning_sound
+        if timeup_sound:
+            self.task.sound_profile.timeup_sound = timeup_sound
 
         # Display options
         self.task.display.fullscreen_timeup = self.fullscreen_var.get()
@@ -217,6 +269,44 @@ class TaskDialog:
 
         self.result = self.task
         self.dialog.destroy()
+
+    def _browse_sound(self):
+        """Browse for custom sound file"""
+        filetypes = [
+            ("Audio files", "*.mp3 *.wav *.ogg"),
+            ("All files", "*.*")
+        ]
+        filename = filedialog.askopenfilename(
+            title="Select Alert Sound",
+            filetypes=filetypes
+        )
+
+        if filename:
+            import shutil
+            import os
+
+            # Copy to sounds directory
+            dest_name = os.path.basename(filename)
+            sounds_dir = self.resource.sounds_path
+            dest_path = sounds_dir / dest_name
+
+            try:
+                shutil.copy(filename, dest_path)
+
+                # Refresh combos and select new file
+                sound_files = self.resource.list_sound_names()
+
+                # Update both warning and timeup combos
+                self.warning_combo['values'] = sound_files
+                self.warning_sound_var.set(dest_name)
+
+                self.timeup_combo['values'] = sound_files
+                self.timeup_sound_var.set(dest_name)
+
+                messagebox.showinfo("Success", f"Sound '{dest_name}' added successfully!")
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to copy sound file: {e}")
 
     def show(self) -> Optional[Task]:
         """Show dialog and return task"""
@@ -243,16 +333,35 @@ class SetupWindow(tk.Frame):
 
     def _create_widgets(self):
         """Create setup UI widgets"""
-        # Header
-        header_frame = tk.Frame(self, bg=self.theme.background, height=80)
+        # Header with logo
+        header_frame = tk.Frame(self, bg=self.theme.background, height=100)
         header_frame.pack(fill=tk.X, padx=20, pady=10)
         header_frame.pack_propagate(False)
 
-        tk.Label(header_frame, text="Schedule Builder",
+        # WAEC Logo on the left
+        logo_path = self.resource.get_image(WAEC_LOGO)
+        if logo_path:
+            try:
+                from PIL import Image, ImageTk
+                logo_img = Image.open(logo_path)
+                logo_img = logo_img.resize((80, 80), Image.Resampling.LANCZOS)
+                logo_photo = ImageTk.PhotoImage(logo_img)
+
+                logo_label = tk.Label(header_frame, image=logo_photo, bg=self.theme.background)
+                logo_label.image = logo_photo  # Keep reference
+                logo_label.pack(side=tk.LEFT, padx=(0, 20))
+            except Exception as e:
+                print(f"Error loading logo: {e}")
+
+        # Text labels on the right
+        text_frame = tk.Frame(header_frame, bg=self.theme.background)
+        text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        tk.Label(text_frame, text="Schedule Builder",
                 font=(FONT_FAMILY, 24, 'bold'), bg=self.theme.background,
                 fg=self.theme.accent_1).pack(anchor='w')
 
-        tk.Label(header_frame, text="Create and configure your task schedule",
+        tk.Label(text_frame, text="Create and configure your task schedule",
                 font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
                 fg=self.theme.primary_text).pack(anchor='w')
 
@@ -452,14 +561,14 @@ class SetupWindow(tk.Frame):
         # Simple selection dialog
         dialog = tk.Toplevel(self.parent)
         dialog.title("Load Schedule")
-        dialog.geometry("400x300")
+        dialog.geometry("500x400")
         dialog.configure(bg=self.theme.background)
 
         tk.Label(dialog, text="Select a schedule to load:",
                 font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
                 bg=self.theme.background, fg=self.theme.primary_text).pack(pady=10)
 
-        listbox = tk.Listbox(dialog, font=(FONT_FAMILY, FONT_SIZE_NORMAL), height=10)
+        listbox = tk.Listbox(dialog, font=(FONT_FAMILY, FONT_SIZE_NORMAL), height=12)
         listbox.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         for schedule in schedules:
@@ -474,10 +583,22 @@ class SetupWindow(tk.Frame):
                 self._refresh_task_list()
                 dialog.destroy()
 
-        tk.Button(dialog, text="Load", command=load_selected,
+        # Double-click to load
+        listbox.bind('<Double-Button-1>', lambda e: load_selected())
+
+        # Button frame
+        btn_frame = tk.Frame(dialog, bg=self.theme.background)
+        btn_frame.pack(pady=10)
+
+        tk.Button(btn_frame, text="OK", command=load_selected,
                  font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
                  bg=self.theme.accent_1, fg=self.theme.background,
-                 padx=20, pady=8).pack(pady=10)
+                 padx=20, pady=8).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
+                 font=(FONT_FAMILY, FONT_SIZE_NORMAL),
+                 bg=self.theme.accent_2, fg=self.theme.primary_text,
+                 padx=20, pady=8).pack(side=tk.LEFT, padx=5)
 
     def _start_schedule(self):
         """Start the current schedule"""

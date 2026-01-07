@@ -230,9 +230,13 @@ class TimeUpWindow:
             )
             next_label.pack()
 
+        # Button frame for Continue and Mute
+        button_frame = tk.Frame(main_frame, bg=self.theme.background)
+        button_frame.pack(pady=30)
+
         # Dismiss button
         dismiss_button = tk.Button(
-            main_frame,
+            button_frame,
             text="Continue",
             font=(FONT_FAMILY, FONT_SIZE_LARGE, 'bold'),
             command=self.dismiss,
@@ -245,7 +249,20 @@ class TimeUpWindow:
             padx=50,
             pady=15
         )
-        dismiss_button.pack(pady=30)
+        dismiss_button.pack(side=tk.LEFT, padx=10)
+
+        # Mute button
+        mute_button = tk.Button(
+            button_frame,
+            text="🔇 Mute",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL),
+            command=self._mute_audio,
+            bg=self.theme.accent_2,
+            fg=self.theme.primary_text,
+            padx=20,
+            pady=10
+        )
+        mute_button.pack(side=tk.LEFT, padx=10)
 
         # Help text
         help_label = tk.Label(
@@ -300,6 +317,10 @@ class TimeUpWindow:
         x = (self.window.winfo_screenwidth() // 2) - (width // 2)
         y = (self.window.winfo_screenheight() // 2) - (height // 2)
         self.window.geometry(f'{width}x{height}+{x}+{y}')
+
+    def _mute_audio(self):
+        """Mute the time-up sound"""
+        self.audio.stop()
 
     def dismiss(self):
         """Dismiss the window"""

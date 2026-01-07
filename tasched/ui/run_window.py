@@ -72,10 +72,25 @@ class RunWindow:
         main_frame = tk.Frame(self.window, bg=self.theme.background)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Top bar (schedule name and clock)
-        top_frame = tk.Frame(main_frame, bg=self.theme.background, height=60)
+        # Top bar (logo, schedule name and clock)
+        top_frame = tk.Frame(main_frame, bg=self.theme.background, height=80)
         top_frame.pack(fill=tk.X, padx=20, pady=10)
         top_frame.pack_propagate(False)
+
+        # WAEC Logo on the left
+        logo_path = self.resource.get_image(WAEC_LOGO)
+        if logo_path:
+            try:
+                from PIL import Image, ImageTk
+                logo_img = Image.open(logo_path)
+                logo_img = logo_img.resize((60, 60), Image.Resampling.LANCZOS)
+                logo_photo = ImageTk.PhotoImage(logo_img)
+
+                logo_label = tk.Label(top_frame, image=logo_photo, bg=self.theme.background)
+                logo_label.image = logo_photo  # Keep reference
+                logo_label.pack(side=tk.LEFT, padx=(0, 15))
+            except Exception as e:
+                print(f"Error loading logo: {e}")
 
         self.schedule_label = tk.Label(
             top_frame,
@@ -103,9 +118,11 @@ class RunWindow:
         self.task_title_label = tk.Label(
             center_frame,
             text="",
-            font=(FONT_FAMILY, FONT_SIZE_TITLE, 'bold'),
+            font=(FONT_FAMILY, 48, 'bold'),  # Increased from 32 to 48
             bg=self.theme.background,
-            fg=self.theme.primary_text
+            fg=self.theme.primary_text,
+            wraplength=1000,  # Allow text wrapping
+            justify=tk.CENTER
         )
         self.task_title_label.pack(pady=(40, 20))
 
@@ -162,6 +179,18 @@ class RunWindow:
         )
         self.pause_button.pack(side=tk.LEFT, padx=10)
 
+        # Mute toggle button
+        self.is_muted = False
+        self.mute_button = tk.Button(
+            button_frame,
+            text="🔇 Mute",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+            command=self.toggle_mute,
+            **self.theme.get_button_style(),
+            width=12
+        )
+        self.mute_button.pack(side=tk.LEFT, padx=10)
+
         skip_button = tk.Button(
             button_frame,
             text="⏭ Skip Task",
@@ -171,6 +200,17 @@ class RunWindow:
             width=12
         )
         skip_button.pack(side=tk.LEFT, padx=10)
+
+        # Next Task button (same as skip)
+        next_button = tk.Button(
+            button_frame,
+            text="⏭ Next Task",
+            font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+            command=self._on_skip,  # Same as skip
+            **self.theme.get_button_style(),
+            width=12
+        )
+        next_button.pack(side=tk.LEFT, padx=10)
 
         stop_button = tk.Button(
             button_frame,
@@ -262,6 +302,20 @@ class RunWindow:
             self.pause_button.config(text="⏸ Pause")
             if self.on_resume_callback:
                 self.on_resume_callback()
+
+    def toggle_mute(self):
+        """Toggle audio mute"""
+        from tasched.services.audio_service import get_audio_service
+        audio = get_audio_service()
+
+        self.is_muted = not self.is_muted
+
+        if self.is_muted:
+            audio.disable()
+            self.mute_button.config(text="🔊 Unmute")
+        else:
+            audio.enable()
+            self.mute_button.config(text="🔇 Mute")
 
     def toggle_fullscreen(self):
         """Toggle fullscreen mode"""
