@@ -81,7 +81,7 @@ class RunWindow:
             top_frame,
             text="",
             font=(FONT_FAMILY, FONT_SIZE_LARGE, 'bold'),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.accent_1
         )
         self.schedule_label.pack(side=tk.LEFT)
@@ -90,7 +90,7 @@ class RunWindow:
             top_frame,
             text="",
             font=(FONT_FAMILY, FONT_SIZE_LARGE),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.accent_3
         )
         self.clock_label.pack(side=tk.RIGHT)
@@ -104,7 +104,7 @@ class RunWindow:
             center_frame,
             text="",
             font=(FONT_FAMILY, FONT_SIZE_TITLE, 'bold'),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.primary_text
         )
         self.task_title_label.pack(pady=(40, 20))
@@ -114,7 +114,7 @@ class RunWindow:
             center_frame,
             text="00:00:00",
             font=(FONT_FAMILY, FONT_SIZE_CLOCK, 'bold'),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.accent_3
         )
         self.countdown_label.pack(pady=20)
@@ -124,7 +124,7 @@ class RunWindow:
             center_frame,
             text="",
             font=(FONT_FAMILY, FONT_SIZE_LARGE),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.accent_1
         )
         self.status_label.pack(pady=10)
@@ -134,7 +134,7 @@ class RunWindow:
             center_frame,
             text="",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.primary_text
         )
         self.next_task_label.pack(pady=10)
@@ -199,7 +199,7 @@ class RunWindow:
             bottom_frame,
             text=help_text,
             font=(FONT_FAMILY, FONT_SIZE_SMALL),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.footer
         )
         help_label.pack()
