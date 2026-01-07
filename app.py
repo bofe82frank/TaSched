@@ -85,7 +85,7 @@ class TaSchedApp:
             header_frame,
             text=APP_FULL_NAME,
             font=(FONT_FAMILY, 28, 'bold'),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.accent_1
         )
         title_label.pack()
@@ -94,7 +94,7 @@ class TaSchedApp:
             header_frame,
             text=APP_TAGLINE,
             font=(FONT_FAMILY, FONT_SIZE_NORMAL),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.accent_3
         )
         tagline_label.pack()
@@ -166,7 +166,7 @@ class TaSchedApp:
             self.root,
             text=f"{APP_NAME} v{APP_VERSION} | {COMPANY} - {DEPARTMENT}",
             font=(FONT_FAMILY, FONT_SIZE_SMALL),
-            **self.theme.get_label_style(),
+            bg=self.theme.background,
             fg=self.theme.footer
         )
         footer_label.pack(side=tk.BOTTOM, pady=10)
