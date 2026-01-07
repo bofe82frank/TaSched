@@ -89,6 +89,7 @@ class TaSchedApp:
             on_pause_callback=self.scheduler.pause,
             on_resume_callback=self.scheduler.resume,
             on_skip_callback=self.scheduler.skip_task,
+            on_force_next_callback=self.scheduler.force_next_task,
             on_stop_callback=self._stop_schedule
         )
 

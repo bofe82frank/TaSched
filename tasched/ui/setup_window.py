@@ -162,9 +162,45 @@ class TaskDialog:
                       fg=self.theme.primary_text, selectcolor=self.theme.background,
                       activebackground=self.theme.background).grid(row=8, column=1, sticky='w', pady=5)
 
+        # Ticker Message
+        tk.Label(main_frame, text="Ticker Message:",
+                font=(FONT_FAMILY, FONT_SIZE_NORMAL),
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=9, column=0, sticky='w', pady=5)
+
+        self.ticker_text_var = tk.StringVar(value="Current Task: [TASK_NAME]")
+        ticker_entry = tk.Entry(main_frame, textvariable=self.ticker_text_var,
+                               font=(FONT_FAMILY, FONT_SIZE_NORMAL), width=50)
+        ticker_entry.grid(row=9, column=1, columnspan=2, sticky='ew', pady=5)
+
+        tk.Label(main_frame, text="Use: [TASK_NAME], [NEXT_TASK], [TIME_REMAINING]",
+                font=(FONT_FAMILY, FONT_SIZE_SMALL),
+                bg=self.theme.background, fg=self.theme.footer).grid(row=10, column=1, columnspan=2, sticky='w')
+
+        # Ticker Configuration
+        config_frame = tk.Frame(main_frame, bg=self.theme.background)
+        config_frame.grid(row=11, column=1, columnspan=2, sticky='w', pady=10)
+
+        tk.Label(config_frame, text="Position:",
+                bg=self.theme.background, fg=self.theme.primary_text).pack(side=tk.LEFT, padx=(0,5))
+        self.ticker_position_var = tk.StringVar(value="bottom")
+        ttk.Combobox(config_frame, textvariable=self.ticker_position_var,
+                    values=["top", "bottom"], state='readonly', width=10).pack(side=tk.LEFT, padx=5)
+
+        tk.Label(config_frame, text="Direction:",
+                bg=self.theme.background, fg=self.theme.primary_text).pack(side=tk.LEFT, padx=(10,5))
+        self.ticker_direction_var = tk.StringVar(value="left")
+        ttk.Combobox(config_frame, textvariable=self.ticker_direction_var,
+                    values=["left", "right"], state='readonly', width=10).pack(side=tk.LEFT, padx=5)
+
+        tk.Label(config_frame, text="Speed:",
+                bg=self.theme.background, fg=self.theme.primary_text).pack(side=tk.LEFT, padx=(10,5))
+        self.ticker_speed_var = tk.StringVar(value="medium")
+        ttk.Combobox(config_frame, textvariable=self.ticker_speed_var,
+                    values=["slow", "medium", "fast"], state='readonly', width=10).pack(side=tk.LEFT, padx=5)
+
         # Buttons
         button_frame = tk.Frame(main_frame, bg=self.theme.background)
-        button_frame.grid(row=9, column=0, columnspan=3, pady=20)
+        button_frame.grid(row=12, column=0, columnspan=3, pady=20)
 
         tk.Button(button_frame, text="Save", command=self._save,
                  font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
@@ -213,6 +249,16 @@ class TaskDialog:
         # Display options
         self.fullscreen_var.set(self.task.display.fullscreen_timeup)
         self.ticker_enabled_var.set(self.task.display.ticker_enabled)
+
+        # Ticker configuration
+        if self.task.display.ticker_text:
+            self.ticker_text_var.set(self.task.display.ticker_text)
+        self.ticker_position_var.set(self.task.display.ticker_position)
+        self.ticker_direction_var.set(self.task.display.ticker_direction)
+
+        # Map speed from int to string
+        speed_reverse_map = {1: "slow", 3: "medium", 6: "fast"}
+        self.ticker_speed_var.set(speed_reverse_map.get(self.task.display.ticker_speed, "medium"))
 
     def _save(self):
         """Save task"""
@@ -266,6 +312,15 @@ class TaskDialog:
         # Display options
         self.task.display.fullscreen_timeup = self.fullscreen_var.get()
         self.task.display.ticker_enabled = self.ticker_enabled_var.get()
+
+        # Ticker settings
+        self.task.display.ticker_text = self.ticker_text_var.get()
+        self.task.display.ticker_position = self.ticker_position_var.get()
+        self.task.display.ticker_direction = self.ticker_direction_var.get()
+
+        # Map speed string to int
+        speed_map = {"slow": 1, "medium": 3, "fast": 6}
+        self.task.display.ticker_speed = speed_map.get(self.ticker_speed_var.get(), 3)
 
         self.result = self.task
         self.dialog.destroy()

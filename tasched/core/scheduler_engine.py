@@ -151,7 +151,11 @@ class SchedulerEngine:
             self._tick()
 
     def skip_task(self):
-        """Skip the current task and move to next"""
+        """
+        Skip the current task and move to next.
+        If next task has absolute_start_time, waits until that time.
+        Otherwise, advances immediately.
+        """
         if not self.schedule:
             return
 
@@ -163,11 +167,36 @@ class SchedulerEngine:
                 self.schedule.id,
                 self.schedule.name,
                 "task_skipped",
-                {'task': current_task.title}
+                {'task': current_task.title, 'action': 'skip_and_wait'}
             )
 
-        # Advance to next task
-        self._advance_to_next_task()
+        # Advance to next task (will respect absolute time if set)
+        self._advance_to_next_task(wait_for_absolute_time=True)
+
+    def force_next_task(self):
+        """
+        Force immediate start of next task (Next Task button).
+        Adjusts all remaining tasks' start times relative to current clock time.
+        """
+        if not self.schedule:
+            return
+
+        current_task = self.schedule.get_current_task()
+        if current_task:
+            current_task.skip()
+            self.log_service.log_task_skipped(current_task.title)
+            self.storage_service.log_event(
+                self.schedule.id,
+                self.schedule.name,
+                "task_forced_next",
+                {'task': current_task.title, 'action': 'force_and_adjust'}
+            )
+
+        # Adjust remaining tasks' absolute times based on current time
+        self._adjust_remaining_task_times()
+
+        # Advance to next task immediately (ignore absolute time)
+        self._advance_to_next_task(wait_for_absolute_time=False)
 
     def stop(self):
         """Stop the schedule execution"""
@@ -262,12 +291,31 @@ class SchedulerEngine:
             # Manual advance - stop here
             self.is_running = False
 
-    def _advance_to_next_task(self):
-        """Advance to the next task in the schedule"""
+    def _advance_to_next_task(self, wait_for_absolute_time=False):
+        """
+        Advance to the next task in the schedule
+
+        Args:
+            wait_for_absolute_time: If True and next task has absolute_start_time,
+                                   wait until that clock time before starting
+        """
         has_next = self.schedule.advance_to_next_task()
 
         if has_next:
-            # Check gap again before starting
+            next_task = self.schedule.get_current_task()
+
+            # Check if we need to wait for absolute start time
+            if wait_for_absolute_time and next_task and next_task.absolute_start_time:
+                seconds_until_start = self._calculate_wait_time(next_task.absolute_start_time)
+
+                if seconds_until_start > 0:
+                    # Set gap countdown to wait until absolute time
+                    self.gap_countdown = seconds_until_start
+                    self.log_service.info(f"Waiting {seconds_until_start}s until {next_task.absolute_start_time} for '{next_task.title}'")
+                    self.timer_id = self.root.after(1000, self._tick)
+                    return
+
+            # Check gap before starting
             if self.schedule.gap_between_tasks > 0 and self.gap_countdown == 0:
                 self.gap_countdown = self.schedule.gap_between_tasks
                 self.timer_id = self.root.after(1000, self._tick)
@@ -276,6 +324,69 @@ class SchedulerEngine:
         else:
             # No more tasks, schedule complete
             self._complete_schedule()
+
+    def _calculate_wait_time(self, absolute_time_str: str) -> int:
+        """
+        Calculate seconds to wait until absolute time (HH:MM format)
+
+        Returns:
+            Seconds until target time (0 if time has passed or is now)
+        """
+        from datetime import datetime, time as dt_time
+
+        try:
+            # Parse target time
+            target_hour, target_minute = map(int, absolute_time_str.split(':'))
+            now = datetime.now()
+            target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+
+            # If target time has already passed today, it's for tomorrow (return 0 to start now)
+            if target <= now:
+                return 0
+
+            # Calculate difference
+            diff = (target - now).total_seconds()
+            return int(diff)
+        except Exception as e:
+            self.log_service.error(f"Error calculating wait time for '{absolute_time_str}': {e}")
+            return 0
+
+    def _adjust_remaining_task_times(self):
+        """
+        Adjust absolute start times of all remaining tasks based on current time.
+        Called when Next Task button is used to force immediate progression.
+        """
+        from datetime import datetime, timedelta
+
+        if not self.schedule:
+            return
+
+        current_index = self.schedule.current_task_index
+        tasks = self.schedule.tasks
+
+        # Start from next task
+        next_index = current_index + 1
+        if next_index >= len(tasks):
+            return
+
+        # Calculate cumulative duration from current time
+        now = datetime.now()
+        cumulative_time = now
+
+        for i in range(next_index, len(tasks)):
+            task = tasks[i]
+
+            # Set absolute start time to cumulative time
+            task.absolute_start_time = cumulative_time.strftime("%H:%M")
+
+            # Add this task's duration for next task's start
+            cumulative_time += timedelta(seconds=task.duration_seconds)
+
+            # Add gap if configured
+            if self.schedule.gap_between_tasks > 0:
+                cumulative_time += timedelta(seconds=self.schedule.gap_between_tasks)
+
+        self.log_service.info(f"Adjusted remaining {len(tasks) - next_index} task start times from {now.strftime('%H:%M')}")
 
     def _start_next_task(self):
         """Start the next task"""

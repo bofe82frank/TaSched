@@ -31,6 +31,7 @@ class RunWindow:
         self.on_pause_callback = on_pause_callback
         self.on_resume_callback = on_resume_callback
         self.on_skip_callback = on_skip_callback
+        self.on_force_next_callback = kwargs.get('on_force_next_callback', on_skip_callback)  # Default to skip if not provided
         self.on_stop_callback = on_stop_callback
 
         # State
@@ -201,12 +202,12 @@ class RunWindow:
         )
         skip_button.pack(side=tk.LEFT, padx=10)
 
-        # Next Task button (same as skip)
+        # Next Task button (forces immediate start, adjusts remaining times)
         next_button = tk.Button(
             button_frame,
             text="⏭ Next Task",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
-            command=self._on_skip,  # Same as skip
+            command=self._on_force_next,  # Different from skip
             **self.theme.get_button_style(),
             width=12
         )
@@ -323,9 +324,14 @@ class RunWindow:
         self.window.attributes('-fullscreen', self.is_fullscreen)
 
     def _on_skip(self):
-        """Handle skip button"""
+        """Handle skip button (waits for next task's absolute time)"""
         if self.on_skip_callback:
             self.on_skip_callback()
+
+    def _on_force_next(self):
+        """Handle next task button (forces immediate start, adjusts times)"""
+        if self.on_force_next_callback:
+            self.on_force_next_callback()
 
     def _on_stop(self):
         """Handle stop button"""
