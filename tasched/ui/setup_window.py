@@ -83,12 +83,50 @@ class TaskDialog:
         self.title_entry = tk.Entry(main_frame, font=(FONT_FAMILY, FONT_SIZE_NORMAL), width=40)
         self.title_entry.grid(row=0, column=1, columnspan=2, sticky='ew', pady=5)
 
-        # Duration
-        tk.Label(main_frame, text="Duration:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+        # Scheduled Start Time (Optional)
+        tk.Label(main_frame, text="Start Time (Optional):", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
                 bg=self.theme.background, fg=self.theme.primary_text).grid(row=1, column=0, sticky='w', pady=5)
 
+        start_time_frame = tk.Frame(main_frame, bg=self.theme.background)
+        start_time_frame.grid(row=1, column=1, columnspan=2, sticky='w', pady=5)
+
+        self.use_start_time_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(start_time_frame, text="Set specific clock time:",
+                      variable=self.use_start_time_var,
+                      font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
+                      fg=self.theme.primary_text, selectcolor=self.theme.background,
+                      activebackground=self.theme.background,
+                      command=self._toggle_start_time).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Hour spinbox
+        self.start_hour_var = tk.StringVar(value="09")
+        tk.Spinbox(start_time_frame, from_=0, to=23, textvariable=self.start_hour_var,
+                  width=3, font=(FONT_FAMILY, FONT_SIZE_NORMAL), format="%02.0f",
+                  state='disabled').pack(side=tk.LEFT, padx=2)
+        tk.Label(start_time_frame, text=":", bg=self.theme.background,
+                fg=self.theme.primary_text, font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold')).pack(side=tk.LEFT)
+
+        # Minute spinbox
+        self.start_minute_var = tk.StringVar(value="00")
+        self.start_minute_spin = tk.Spinbox(start_time_frame, from_=0, to=59, textvariable=self.start_minute_var,
+                  width=3, font=(FONT_FAMILY, FONT_SIZE_NORMAL), format="%02.0f",
+                  state='disabled')
+        self.start_minute_spin.pack(side=tk.LEFT, padx=2)
+
+        tk.Label(start_time_frame, text="(24-hour format, e.g., 14:30)",
+                font=(FONT_FAMILY, FONT_SIZE_SMALL), bg=self.theme.background,
+                fg=self.theme.footer).pack(side=tk.LEFT, padx=(10, 0))
+
+        # Store spinbox widgets for enabling/disabling
+        self.start_hour_spin = start_time_frame.winfo_children()[1]
+        self.start_minute_spin = start_time_frame.winfo_children()[3]
+
+        # Duration
+        tk.Label(main_frame, text="Duration:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=2, column=0, sticky='w', pady=5)
+
         duration_frame = tk.Frame(main_frame, bg=self.theme.background)
-        duration_frame.grid(row=1, column=1, columnspan=2, sticky='w', pady=5)
+        duration_frame.grid(row=2, column=1, columnspan=2, sticky='w', pady=5)
 
         tk.Label(duration_frame, text="Hours:", bg=self.theme.background,
                 fg=self.theme.primary_text).pack(side=tk.LEFT, padx=(0, 5))
@@ -109,25 +147,25 @@ class TaskDialog:
                   width=5, font=(FONT_FAMILY, FONT_SIZE_NORMAL)).pack(side=tk.LEFT, padx=5)
 
         # Warning Points
-        tk.Label(main_frame, text="Warning Points (seconds):", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
-                bg=self.theme.background, fg=self.theme.primary_text).grid(row=2, column=0, sticky='w', pady=5)
+        tk.Label(main_frame, text="Warning Points (minutes):", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=3, column=0, sticky='w', pady=5)
 
         self.warnings_entry = tk.Entry(main_frame, font=(FONT_FAMILY, FONT_SIZE_NORMAL), width=40)
-        self.warnings_entry.grid(row=2, column=1, columnspan=2, sticky='ew', pady=5)
+        self.warnings_entry.grid(row=3, column=1, columnspan=2, sticky='ew', pady=5)
 
         tk.Label(main_frame, text="(Enter minutes, e.g., 10,5,1 for warnings at 10min, 5min, 1min before)",
                 font=(FONT_FAMILY, FONT_SIZE_SMALL), bg=self.theme.background,
-                fg=self.theme.footer).grid(row=3, column=1, columnspan=2, sticky='w')
+                fg=self.theme.footer).grid(row=12, column=1, columnspan=2, sticky='w')
 
         # Warning Sound
         tk.Label(main_frame, text="Warning Sound:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
-                bg=self.theme.background, fg=self.theme.primary_text).grid(row=4, column=0, sticky='w', pady=5)
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=6, column=0, sticky='w', pady=5)
 
         self.warning_sound_var = tk.StringVar()
         sound_files = self.resource.list_sound_names()
         self.warning_combo = ttk.Combobox(main_frame, textvariable=self.warning_sound_var,
                                          values=sound_files, state='readonly', width=37)
-        self.warning_combo.grid(row=4, column=1, columnspan=2, sticky='ew', pady=5)
+        self.warning_combo.grid(row=5, column=1, columnspan=2, sticky='ew', pady=5)
 
         # Time-Up Sound
         tk.Label(main_frame, text="Time-Up Sound:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
@@ -136,14 +174,14 @@ class TaskDialog:
         self.timeup_sound_var = tk.StringVar()
         self.timeup_combo = ttk.Combobox(main_frame, textvariable=self.timeup_sound_var,
                                         values=sound_files, state='readonly', width=37)
-        self.timeup_combo.grid(row=5, column=1, columnspan=2, sticky='ew', pady=5)
+        self.timeup_combo.grid(row=6, column=1, columnspan=2, sticky='ew', pady=5)
 
         # Browse button for custom sounds
         tk.Button(main_frame, text="📂 Browse for Custom Sound...",
                  command=self._browse_sound,
                  font=(FONT_FAMILY, FONT_SIZE_SMALL),
                  bg=self.theme.accent_1, fg=self.theme.background,
-                 padx=15, pady=5).grid(row=6, column=1, sticky='w', pady=10)
+                 padx=15, pady=5).grid(row=7, column=1, sticky='w', pady=10)
 
         # Fullscreen Time-up
         self.fullscreen_var = tk.BooleanVar(value=True)
@@ -154,14 +192,14 @@ class TaskDialog:
 
         # Ticker Settings
         tk.Label(main_frame, text="Ticker Settings:", font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
-                bg=self.theme.background, fg=self.theme.primary_text).grid(row=8, column=0, sticky='w', pady=5)
+                bg=self.theme.background, fg=self.theme.primary_text).grid(row=11, column=0, sticky='w', pady=5)
 
         self.ticker_enabled_var = tk.BooleanVar(value=False)
         tk.Checkbutton(main_frame, text="Enable Ticker", variable=self.ticker_enabled_var,
                       font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
                       fg=self.theme.primary_text, selectcolor=self.theme.background,
                       activebackground=self.theme.background,
-                      command=self._update_ticker_preview).grid(row=8, column=1, sticky='w', pady=5)
+                      command=self._update_ticker_preview).grid(row=9, column=1, sticky='w', pady=5)
 
         # Ticker Content Selection
         tk.Label(main_frame, text="Show in Ticker:",
@@ -169,7 +207,7 @@ class TaskDialog:
                 bg=self.theme.background, fg=self.theme.primary_text).grid(row=9, column=0, sticky='w', pady=5)
 
         ticker_content_frame = tk.Frame(main_frame, bg=self.theme.background)
-        ticker_content_frame.grid(row=9, column=1, columnspan=2, sticky='w', pady=5)
+        ticker_content_frame.grid(row=10, column=1, columnspan=2, sticky='w', pady=5)
 
         self.ticker_show_task_var = tk.BooleanVar(value=True)
         tk.Checkbutton(ticker_content_frame, text="✓ Current Task Name",
@@ -198,17 +236,17 @@ class TaskDialog:
         # Preview Label
         tk.Label(main_frame, text="Preview:",
                 font=(FONT_FAMILY, FONT_SIZE_SMALL),
-                bg=self.theme.background, fg=self.theme.footer).grid(row=10, column=0, sticky='w', pady=5)
+                bg=self.theme.background, fg=self.theme.footer).grid(row=11, column=0, sticky='w', pady=5)
 
         self.ticker_preview_label = tk.Label(main_frame, text="",
                 font=(FONT_FAMILY, FONT_SIZE_SMALL, 'italic'),
                 bg=self.theme.background, fg=self.theme.accent_3,
                 wraplength=500, justify=tk.LEFT)
-        self.ticker_preview_label.grid(row=10, column=1, columnspan=2, sticky='w', pady=5)
+        self.ticker_preview_label.grid(row=11, column=1, columnspan=2, sticky='w', pady=5)
 
         # Ticker Configuration
         config_frame = tk.Frame(main_frame, bg=self.theme.background)
-        config_frame.grid(row=11, column=1, columnspan=2, sticky='w', pady=10)
+        config_frame.grid(row=12, column=1, columnspan=2, sticky='w', pady=10)
 
         tk.Label(config_frame, text="Position:",
                 bg=self.theme.background, fg=self.theme.primary_text).pack(side=tk.LEFT, padx=(0,5))
@@ -230,7 +268,7 @@ class TaskDialog:
 
         # Buttons
         button_frame = tk.Frame(main_frame, bg=self.theme.background)
-        button_frame.grid(row=12, column=0, columnspan=3, pady=20)
+        button_frame.grid(row=13, column=0, columnspan=3, pady=20)
 
         tk.Button(button_frame, text="Save", command=self._save,
                  font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
@@ -292,8 +330,26 @@ class TaskDialog:
         speed_reverse_map = {1: "slow", 3: "medium", 6: "fast"}
         self.ticker_speed_var.set(speed_reverse_map.get(self.task.display.ticker_speed, "medium"))
 
+        # Start time
+        if self.task.absolute_start_time:
+            try:
+                hour, minute = self.task.absolute_start_time.split(':')
+                self.use_start_time_var.set(True)
+                self.start_hour_var.set(hour)
+                self.start_minute_var.set(minute)
+                self._toggle_start_time()
+            except:
+                pass
+
         # Update preview
         self._update_ticker_preview()
+
+    def _toggle_start_time(self):
+        """Enable/disable start time spinboxes"""
+        state = 'normal' if self.use_start_time_var.get() else 'disabled'
+        # Update spinboxes state
+        self.start_hour_spin.config(state=state)
+        self.start_minute_spin.config(state=state)
 
     def _save(self):
         """Save task"""
@@ -334,6 +390,14 @@ class TaskDialog:
         self.task.duration_seconds = total_seconds
         self.task.remaining_seconds = total_seconds
         self.task.warning_points_seconds = warning_points
+
+        # Start time
+        if self.use_start_time_var.get():
+            hour = int(self.start_hour_var.get())
+            minute = int(self.start_minute_var.get())
+            self.task.absolute_start_time = f"{hour:02d}:{minute:02d}"
+        else:
+            self.task.absolute_start_time = None
 
         # Sound profile
         warning_sound = self.warning_sound_var.get()
