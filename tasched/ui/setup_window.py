@@ -806,11 +806,18 @@ class SetupWindow(tk.Frame):
 
     def _start_schedule(self):
         """Start the current schedule"""
+        print("DEBUG: _start_schedule called")
+        print(f"DEBUG: Current schedule has {len(self.current_schedule.tasks)} tasks")
+
         if not self.current_schedule.tasks:
             messagebox.showwarning("No Tasks", "Add at least one task before starting")
             return
 
         self.current_schedule.name = self.schedule_name_var.get()
+        print(f"DEBUG: Schedule name: {self.current_schedule.name}")
 
         if self.on_start_callback:
+            print("DEBUG: Calling on_start_callback")
             self.on_start_callback(self.current_schedule)
+        else:
+            print("ERROR: on_start_callback is None!")

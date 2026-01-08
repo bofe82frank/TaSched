@@ -80,24 +80,42 @@ class TaSchedApp:
 
     def _start_from_setup(self, schedule: Schedule):
         """Start schedule from setup window"""
-        # Load into scheduler
-        self.scheduler.load_schedule(schedule)
+        try:
+            print(f"DEBUG: _start_from_setup called with schedule: {schedule.name}")
+            print(f"DEBUG: Schedule has {len(schedule.tasks)} tasks")
 
-        # Create run window
-        self.run_window = RunWindow(
-            self.root,
-            on_pause_callback=self.scheduler.pause,
-            on_resume_callback=self.scheduler.resume,
-            on_skip_callback=self.scheduler.skip_task,
-            on_force_next_callback=self.scheduler.force_next_task,
-            on_stop_callback=self._stop_schedule
-        )
+            # Load into scheduler
+            self.scheduler.load_schedule(schedule)
+            print("DEBUG: Schedule loaded into scheduler")
 
-        # Hide setup window
-        self.root.withdraw()
+            # Create run window
+            self.run_window = RunWindow(
+                self.root,
+                on_pause_callback=self.scheduler.pause,
+                on_resume_callback=self.scheduler.resume,
+                on_skip_callback=self.scheduler.skip_task,
+                on_force_next_callback=self.scheduler.force_next_task,
+                on_stop_callback=self._stop_schedule
+            )
+            print("DEBUG: RunWindow created")
 
-        # Start schedule
-        self.scheduler.start()
+            # Hide setup window
+            self.root.withdraw()
+            print("DEBUG: Setup window hidden")
+
+            # Start schedule
+            self.scheduler.start()
+            print("DEBUG: Scheduler started")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Error Starting Schedule",
+                f"Failed to start schedule:\n{str(e)}\n\nSee console for details"
+            )
+            print(f"ERROR in _start_from_setup: {e}")
+            import traceback
+            traceback.print_exc()
+            self.root.deiconify()  # Show setup window again
 
     def _on_tick(self, schedule, current_task):
         """Handle timer tick"""
