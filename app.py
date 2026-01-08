@@ -126,12 +126,14 @@ class TaSchedApp:
             self.run_window.destroy()
             self.run_window = None
 
-        self.root.deiconify()
+        # Keep setup window hidden - user can reopen from taskbar if needed
+        # Don't show: self.root.deiconify()
 
         messagebox.showinfo(
             "Schedule Complete",
             f"Schedule '{schedule.name}' completed successfully!\n\n"
-            f"Total tasks: {len(schedule.tasks)}"
+            f"Total tasks: {len(schedule.tasks)}\n\n"
+            f"Click the TaSched icon in the taskbar to create a new schedule."
         )
 
     def _on_warning(self, task, remaining_seconds):
@@ -160,7 +162,8 @@ class TaSchedApp:
                 self.run_window.destroy()
                 self.run_window = None
 
-            self.root.deiconify()
+            # Keep setup window hidden - user can reopen from taskbar if needed
+            # Don't show: self.root.deiconify()
 
     def run(self):
         """Run the application"""
