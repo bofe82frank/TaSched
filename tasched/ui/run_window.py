@@ -132,9 +132,13 @@ class RunWindow:
         center_frame = tk.Frame(main_frame, bg=self.theme.background)
         center_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Task title
+        # Task title (limited height to prevent footer from being pushed off screen)
+        task_title_container = tk.Frame(center_frame, bg=self.theme.background, height=150)
+        task_title_container.pack(pady=(40, 20))
+        task_title_container.pack_propagate(False)
+
         self.task_title_label = tk.Label(
-            center_frame,
+            task_title_container,
             text="",
             font=(FONT_FAMILY, 48, 'bold'),  # Increased from 32 to 48
             bg=self.theme.background,
@@ -142,7 +146,7 @@ class RunWindow:
             wraplength=1000,  # Allow text wrapping
             justify=tk.CENTER
         )
-        self.task_title_label.pack(pady=(40, 20))
+        self.task_title_label.pack()
 
         # Countdown timer (large)
         self.countdown_label = tk.Label(
