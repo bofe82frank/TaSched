@@ -20,7 +20,7 @@ class RunWindow:
     """
 
     def __init__(self, parent: tk.Tk, on_pause_callback=None, on_resume_callback=None,
-                 on_skip_callback=None, on_stop_callback=None):
+                 on_skip_callback=None, on_stop_callback=None, on_force_next_callback=None):
         self.parent = parent
         self.window = tk.Toplevel(parent)
         self.theme = get_theme_service()
@@ -31,7 +31,7 @@ class RunWindow:
         self.on_pause_callback = on_pause_callback
         self.on_resume_callback = on_resume_callback
         self.on_skip_callback = on_skip_callback
-        self.on_force_next_callback = kwargs.get('on_force_next_callback', on_skip_callback)  # Default to skip if not provided
+        self.on_force_next_callback = on_force_next_callback if on_force_next_callback else on_skip_callback
         self.on_stop_callback = on_stop_callback
 
         # State
