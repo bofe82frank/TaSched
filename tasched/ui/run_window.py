@@ -275,24 +275,27 @@ class RunWindow:
         )
         help_label.pack(side=tk.LEFT)
 
-        # Powered By text on right
+        # Powered By text on right (centered with frame)
+        powered_frame = tk.Frame(footer_frame, bg=self.theme.background)
+        powered_frame.pack(side=tk.RIGHT)
+
         powered_by_label = tk.Label(
-            footer_frame,
-            text="Powered By",
+            powered_frame,
+            text="Powered By ",
             font=(FONT_FAMILY, FONT_SIZE_SMALL, 'italic'),
             bg=self.theme.background,
             fg='white'
         )
-        powered_by_label.pack(side=tk.RIGHT, padx=(0, 5))
+        powered_by_label.pack(side=tk.LEFT)
 
         waec_label = tk.Label(
-            footer_frame,
+            powered_frame,
             text="WAEC - Psychometrics Dept.",
             font=(FONT_FAMILY, FONT_SIZE_SMALL, 'bold'),
             bg=self.theme.background,
             fg='white'
         )
-        waec_label.pack(side=tk.RIGHT)
+        waec_label.pack(side=tk.LEFT)
 
         # Update clock periodically
         self._update_clock()
