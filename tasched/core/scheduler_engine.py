@@ -127,9 +127,7 @@ class SchedulerEngine:
                 )
 
             # Cancel timer
-            if self.timer_id:
-                self.root.after_cancel(self.timer_id)
-                self.timer_id = None
+            self._cancel_timer()
 
     def resume(self):
         """Resume the paused schedule"""
@@ -217,11 +215,15 @@ class SchedulerEngine:
             )
 
             # Cancel timer
-            if self.timer_id:
-                self.root.after_cancel(self.timer_id)
-                self.timer_id = None
+            self._cancel_timer()
 
     # ========== Timer Loop ==========
+
+    def _cancel_timer(self):
+        """Cancel the current timer callback if it exists"""
+        if self.timer_id:
+            self.root.after_cancel(self.timer_id)
+            self.timer_id = None
 
     def _tick(self):
         """Execute one timer tick (called every second)"""
@@ -234,8 +236,10 @@ class SchedulerEngine:
             if self.gap_countdown == 0:
                 # Gap complete, start next task
                 self._start_next_task()
-            # Schedule next tick
-            self.timer_id = self.root.after(1000, self._tick)
+            else:
+                # Schedule next tick - cancel existing timer first
+                self._cancel_timer()
+                self.timer_id = self.root.after(1000, self._tick)
             return
 
         # Get current task
@@ -259,7 +263,8 @@ class SchedulerEngine:
         if time_is_up:
             self._handle_task_complete(current_task)
         else:
-            # Schedule next tick
+            # Schedule next tick - cancel existing timer first
+            self._cancel_timer()
             self.timer_id = self.root.after(1000, self._tick)
 
     def _handle_task_complete(self, task: Task):
@@ -282,7 +287,8 @@ class SchedulerEngine:
             # Check if there's a gap
             if self.schedule.gap_between_tasks > 0:
                 self.gap_countdown = self.schedule.gap_between_tasks
-                # Continue ticking for gap
+                # Continue ticking for gap - cancel existing timer first
+                self._cancel_timer()
                 self.timer_id = self.root.after(1000, self._tick)
             else:
                 # No gap, advance immediately
@@ -309,15 +315,17 @@ class SchedulerEngine:
                 seconds_until_start = self._calculate_wait_time(next_task.absolute_start_time)
 
                 if seconds_until_start > 0:
-                    # Set gap countdown to wait until absolute time
+                    # Set gap countdown to wait until absolute time - cancel existing timer first
                     self.gap_countdown = seconds_until_start
                     self.log_service.info(f"Waiting {seconds_until_start}s until {next_task.absolute_start_time} for '{next_task.title}'")
+                    self._cancel_timer()
                     self.timer_id = self.root.after(1000, self._tick)
                     return
 
             # Check gap before starting
             if self.schedule.gap_between_tasks > 0 and self.gap_countdown == 0:
                 self.gap_countdown = self.schedule.gap_between_tasks
+                self._cancel_timer()
                 self.timer_id = self.root.after(1000, self._tick)
             else:
                 self._start_next_task()
@@ -402,7 +410,8 @@ class SchedulerEngine:
                 {'task': next_task.title}
             )
 
-        # Continue timer loop
+        # Continue timer loop - cancel existing timer first
+        self._cancel_timer()
         self.timer_id = self.root.after(1000, self._tick)
 
     def _complete_schedule(self):
