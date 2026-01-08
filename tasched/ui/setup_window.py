@@ -160,21 +160,51 @@ class TaskDialog:
         tk.Checkbutton(main_frame, text="Enable Ticker", variable=self.ticker_enabled_var,
                       font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
                       fg=self.theme.primary_text, selectcolor=self.theme.background,
-                      activebackground=self.theme.background).grid(row=8, column=1, sticky='w', pady=5)
+                      activebackground=self.theme.background,
+                      command=self._update_ticker_preview).grid(row=8, column=1, sticky='w', pady=5)
 
-        # Ticker Message
-        tk.Label(main_frame, text="Ticker Message:",
+        # Ticker Content Selection
+        tk.Label(main_frame, text="Show in Ticker:",
                 font=(FONT_FAMILY, FONT_SIZE_NORMAL),
                 bg=self.theme.background, fg=self.theme.primary_text).grid(row=9, column=0, sticky='w', pady=5)
 
-        self.ticker_text_var = tk.StringVar(value="Current Task: [TASK_NAME]")
-        ticker_entry = tk.Entry(main_frame, textvariable=self.ticker_text_var,
-                               font=(FONT_FAMILY, FONT_SIZE_NORMAL), width=50)
-        ticker_entry.grid(row=9, column=1, columnspan=2, sticky='ew', pady=5)
+        ticker_content_frame = tk.Frame(main_frame, bg=self.theme.background)
+        ticker_content_frame.grid(row=9, column=1, columnspan=2, sticky='w', pady=5)
 
-        tk.Label(main_frame, text="Use: [TASK_NAME], [NEXT_TASK], [TIME_REMAINING]",
+        self.ticker_show_task_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(ticker_content_frame, text="✓ Current Task Name",
+                      variable=self.ticker_show_task_var,
+                      font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
+                      fg=self.theme.primary_text, selectcolor=self.theme.background,
+                      activebackground=self.theme.background,
+                      command=self._update_ticker_preview).pack(side=tk.LEFT, padx=(0, 15))
+
+        self.ticker_show_time_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(ticker_content_frame, text="⏱ Time Remaining",
+                      variable=self.ticker_show_time_var,
+                      font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
+                      fg=self.theme.primary_text, selectcolor=self.theme.background,
+                      activebackground=self.theme.background,
+                      command=self._update_ticker_preview).pack(side=tk.LEFT, padx=(0, 15))
+
+        self.ticker_show_next_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(ticker_content_frame, text="➡ Next Task",
+                      variable=self.ticker_show_next_var,
+                      font=(FONT_FAMILY, FONT_SIZE_NORMAL), bg=self.theme.background,
+                      fg=self.theme.primary_text, selectcolor=self.theme.background,
+                      activebackground=self.theme.background,
+                      command=self._update_ticker_preview).pack(side=tk.LEFT)
+
+        # Preview Label
+        tk.Label(main_frame, text="Preview:",
                 font=(FONT_FAMILY, FONT_SIZE_SMALL),
-                bg=self.theme.background, fg=self.theme.footer).grid(row=10, column=1, columnspan=2, sticky='w')
+                bg=self.theme.background, fg=self.theme.footer).grid(row=10, column=0, sticky='w', pady=5)
+
+        self.ticker_preview_label = tk.Label(main_frame, text="",
+                font=(FONT_FAMILY, FONT_SIZE_SMALL, 'italic'),
+                bg=self.theme.background, fg=self.theme.accent_3,
+                wraplength=500, justify=tk.LEFT)
+        self.ticker_preview_label.grid(row=10, column=1, columnspan=2, sticky='w', pady=5)
 
         # Ticker Configuration
         config_frame = tk.Frame(main_frame, bg=self.theme.background)
@@ -252,13 +282,18 @@ class TaskDialog:
 
         # Ticker configuration
         if self.task.display.ticker_text:
-            self.ticker_text_var.set(self.task.display.ticker_text)
+            # Parse existing ticker text to set checkboxes
+            self._parse_ticker_text(self.task.display.ticker_text)
+
         self.ticker_position_var.set(self.task.display.ticker_position)
         self.ticker_direction_var.set(self.task.display.ticker_direction)
 
         # Map speed from int to string
         speed_reverse_map = {1: "slow", 3: "medium", 6: "fast"}
         self.ticker_speed_var.set(speed_reverse_map.get(self.task.display.ticker_speed, "medium"))
+
+        # Update preview
+        self._update_ticker_preview()
 
     def _save(self):
         """Save task"""
@@ -313,8 +348,8 @@ class TaskDialog:
         self.task.display.fullscreen_timeup = self.fullscreen_var.get()
         self.task.display.ticker_enabled = self.ticker_enabled_var.get()
 
-        # Ticker settings
-        self.task.display.ticker_text = self.ticker_text_var.get()
+        # Build ticker text from selected options
+        self.task.display.ticker_text = self._build_ticker_text()
         self.task.display.ticker_position = self.ticker_position_var.get()
         self.task.display.ticker_direction = self.ticker_direction_var.get()
 
@@ -362,6 +397,55 @@ class TaskDialog:
 
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to copy sound file: {e}")
+
+    def _build_ticker_text(self) -> str:
+        """Build ticker message from checkbox selections"""
+        parts = []
+
+        if self.ticker_show_task_var.get():
+            parts.append("[TASK_NAME]")
+
+        if self.ticker_show_time_var.get():
+            parts.append("[TIME_REMAINING]")
+
+        if self.ticker_show_next_var.get():
+            parts.append("Next: [NEXT_TASK]")
+
+        if not parts:
+            return "Current Task: [TASK_NAME]"  # Default fallback
+
+        # Join with separator
+        if len(parts) == 1:
+            return parts[0]
+        elif len(parts) == 2:
+            return f"{parts[0]} - {parts[1]}"
+        else:
+            return f"{parts[0]} - {parts[1]} | {parts[2]}"
+
+    def _parse_ticker_text(self, text: str):
+        """Parse ticker text and set checkboxes accordingly"""
+        self.ticker_show_task_var.set("[TASK_NAME]" in text)
+        self.ticker_show_time_var.set("[TIME_REMAINING]" in text)
+        self.ticker_show_next_var.set("[NEXT_TASK]" in text)
+
+    def _update_ticker_preview(self):
+        """Update the ticker preview label with example text"""
+        if not self.ticker_enabled_var.get():
+            self.ticker_preview_label.config(text="(Ticker is disabled)")
+            return
+
+        # Build preview with example values
+        preview = self._build_ticker_text()
+
+        # Replace placeholders with example values
+        preview = preview.replace("[TASK_NAME]", "Mathematics")
+        preview = preview.replace("[TIME_REMAINING]", "15:30")
+        preview = preview.replace("[NEXT_TASK]", "English Language")
+
+        if not preview or preview == "":
+            preview = "(Select at least one option above)"
+
+        self.ticker_preview_label.config(text=f"Example: {preview}")
 
     def show(self) -> Optional[Task]:
         """Show dialog and return task"""
