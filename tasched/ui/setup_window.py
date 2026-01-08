@@ -755,30 +755,38 @@ class SetupWindow(tk.Frame):
         messagebox.showinfo("Saved", f"Schedule '{self.current_schedule.name}' saved successfully!")
 
     def _load_schedule(self):
-        """Load existing schedule"""
+        """Load existing schedule with CRUD functionality"""
         schedules = self.storage.get_all_schedules()
 
         if not schedules:
             messagebox.showinfo("No Schedules", "No saved schedules found")
             return
 
-        # Simple selection dialog
+        # Dialog window
         dialog = tk.Toplevel(self.parent)
-        dialog.title("Load Schedule")
-        dialog.geometry("500x400")
+        dialog.title("Manage Schedules")
+        dialog.geometry("600x450")
         dialog.configure(bg=self.theme.background)
 
-        tk.Label(dialog, text="Select a schedule to load:",
+        tk.Label(dialog, text="Select a schedule:",
                 font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
                 bg=self.theme.background, fg=self.theme.primary_text).pack(pady=10)
 
         listbox = tk.Listbox(dialog, font=(FONT_FAMILY, FONT_SIZE_NORMAL), height=12)
         listbox.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
-        for schedule in schedules:
-            listbox.insert(tk.END, f"{schedule.name} ({len(schedule.tasks)} tasks)")
+        def refresh_list():
+            """Refresh the schedule list"""
+            nonlocal schedules
+            schedules = self.storage.get_all_schedules()
+            listbox.delete(0, tk.END)
+            for schedule in schedules:
+                listbox.insert(tk.END, f"{schedule.name} ({len(schedule.tasks)} tasks)")
+
+        refresh_list()
 
         def load_selected():
+            """Load the selected schedule"""
             selection = listbox.curselection()
             if selection:
                 selected_schedule = schedules[selection[0]]
@@ -787,6 +795,50 @@ class SetupWindow(tk.Frame):
                 self._refresh_task_list()
                 dialog.destroy()
 
+        def edit_selected():
+            """Edit the selected schedule"""
+            selection = listbox.curselection()
+            if not selection:
+                messagebox.showwarning("No Selection", "Please select a schedule to edit")
+                return
+
+            selected_schedule = schedules[selection[0]]
+
+            # Load schedule into editor
+            self.current_schedule = selected_schedule
+            self.schedule_name_var.set(selected_schedule.name)
+            self._refresh_task_list()
+            dialog.destroy()
+            messagebox.showinfo("Edit Mode", f"Schedule '{selected_schedule.name}' loaded for editing.\n\nMake your changes and click Save Schedule when done.")
+
+        def delete_selected():
+            """Delete the selected schedule"""
+            selection = listbox.curselection()
+            if not selection:
+                messagebox.showwarning("No Selection", "Please select a schedule to delete")
+                return
+
+            selected_schedule = schedules[selection[0]]
+
+            # Confirm deletion
+            result = messagebox.askyesno(
+                "Confirm Delete",
+                f"Are you sure you want to delete schedule '{selected_schedule.name}'?\n\nThis action cannot be undone."
+            )
+
+            if result:
+                try:
+                    self.storage.delete_schedule(selected_schedule.id)
+                    messagebox.showinfo("Deleted", f"Schedule '{selected_schedule.name}' deleted successfully!")
+                    refresh_list()
+
+                    # If list is now empty, close dialog
+                    if not schedules:
+                        messagebox.showinfo("No Schedules", "No more schedules available")
+                        dialog.destroy()
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to delete schedule: {e}")
+
         # Double-click to load
         listbox.bind('<Double-Button-1>', lambda e: load_selected())
 
@@ -794,14 +846,25 @@ class SetupWindow(tk.Frame):
         btn_frame = tk.Frame(dialog, bg=self.theme.background)
         btn_frame.pack(pady=10)
 
-        tk.Button(btn_frame, text="OK", command=load_selected,
+        tk.Button(btn_frame, text="Load", command=load_selected,
                  font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
                  bg=self.theme.accent_1, fg=self.theme.background,
                  padx=20, pady=8).pack(side=tk.LEFT, padx=5)
 
+        tk.Button(btn_frame, text="Edit", command=edit_selected,
+                 font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+                 bg=self.theme.accent_3, fg=self.theme.background,
+                 padx=20, pady=8).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(btn_frame, text="Delete", command=delete_selected,
+                 font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
+                 bg=self.theme.accent_2, fg=self.theme.primary_text,
+                 padx=20, pady=8).pack(side=tk.LEFT, padx=5)
+
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                  font=(FONT_FAMILY, FONT_SIZE_NORMAL),
-                 bg=self.theme.accent_2, fg=self.theme.primary_text,
+                 bg=self.theme.background, fg=self.theme.primary_text,
+                 relief='groove',
                  padx=20, pady=8).pack(side=tk.LEFT, padx=5)
 
     def _start_schedule(self):
