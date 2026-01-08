@@ -37,6 +37,13 @@ class RunWindow:
         # State
         self.is_paused = False
         self.is_fullscreen = True
+        self.current_task = None
+        self.next_task = None
+        self.schedule = None
+
+        # Ticker state
+        self.ticker_offset = 0
+        self.ticker_enabled = False
 
         # Configure window
         self._setup_window()
@@ -63,6 +70,16 @@ class RunWindow:
         self.window.bind('<F11>', lambda e: self.toggle_fullscreen())
         self.window.bind('<Escape>', lambda e: self.toggle_fullscreen())
         self.window.bind('<space>', lambda e: self.toggle_pause())
+        self.window.bind('p', lambda e: self.toggle_pause())  # P for Pause
+        self.window.bind('P', lambda e: self.toggle_pause())
+        self.window.bind('m', lambda e: self.toggle_mute())  # M for Mute
+        self.window.bind('M', lambda e: self.toggle_mute())
+        self.window.bind('s', lambda e: self._on_skip())  # S for Skip
+        self.window.bind('S', lambda e: self._on_skip())
+        self.window.bind('n', lambda e: self._on_force_next())  # N for Next
+        self.window.bind('N', lambda e: self._on_force_next())
+        self.window.bind('x', lambda e: self._on_stop())  # X for Stop (eXit)
+        self.window.bind('X', lambda e: self._on_stop())
 
         # Protocol for window close
         self.window.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -96,11 +113,11 @@ class RunWindow:
         self.schedule_label = tk.Label(
             top_frame,
             text="",
-            font=(FONT_FAMILY, FONT_SIZE_LARGE, 'bold'),
+            font=(FONT_FAMILY, 32, 'bold'),  # Increased from FONT_SIZE_LARGE (18) to 32
             bg=self.theme.background,
             fg=self.theme.accent_1
         )
-        self.schedule_label.pack(side=tk.LEFT)
+        self.schedule_label.pack(side=tk.LEFT, padx=(0, 20))
 
         self.clock_label = tk.Label(
             top_frame,
@@ -230,31 +247,73 @@ class RunWindow:
         )
         stop_button.pack(side=tk.LEFT, padx=10)
 
-        # Bottom bar (help text)
-        bottom_frame = tk.Frame(main_frame, bg=self.theme.background, height=40)
-        bottom_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=20, pady=10)
-        bottom_frame.pack_propagate(False)
+        # Ticker (scrolling message bar)
+        self.ticker_frame = tk.Frame(main_frame, bg=self.theme.accent_1, height=50)
+        self.ticker_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        self.ticker_frame.pack_propagate(False)
 
-        help_text = "F11: Toggle Fullscreen | Space: Pause/Resume | ESC: Exit Fullscreen"
+        self.ticker_canvas = tk.Canvas(self.ticker_frame, bg=self.theme.accent_1,
+                                       highlightthickness=0, height=50)
+        self.ticker_canvas.pack(fill=tk.BOTH, expand=True)
+
+        self.ticker_text_id = None
+        self.ticker_message = ""
+
+        # Footer bar
+        footer_frame = tk.Frame(main_frame, bg=self.theme.background, height=40)
+        footer_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=20, pady=(10, 5))
+        footer_frame.pack_propagate(False)
+
+        # Help text on left
+        help_text = "P: Pause | M: Mute | S: Skip | N: Next | X: Stop | F11: Fullscreen | ESC: Exit Fullscreen"
         help_label = tk.Label(
-            bottom_frame,
+            footer_frame,
             text=help_text,
             font=(FONT_FAMILY, FONT_SIZE_SMALL),
             bg=self.theme.background,
             fg=self.theme.footer
         )
-        help_label.pack()
+        help_label.pack(side=tk.LEFT)
+
+        # Powered By text on right
+        powered_by_label = tk.Label(
+            footer_frame,
+            text="Powered By",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL, 'italic'),
+            bg=self.theme.background,
+            fg='white'
+        )
+        powered_by_label.pack(side=tk.RIGHT, padx=(0, 5))
+
+        waec_label = tk.Label(
+            footer_frame,
+            text="WAEC - Psychometrics Dept.",
+            font=(FONT_FAMILY, FONT_SIZE_SMALL, 'bold'),
+            bg=self.theme.background,
+            fg='white'
+        )
+        waec_label.pack(side=tk.RIGHT)
 
         # Update clock periodically
         self._update_clock()
 
     def update(self, schedule: Schedule, current_task: Task, next_task: Optional[Task] = None):
         """Update display with current schedule state"""
+        # Store references
+        self.current_task = current_task
+        self.next_task = next_task
+        self.schedule = schedule
+
         # Update schedule name
         self.schedule_label.config(text=schedule.name)
 
-        # Update task title
-        self.task_title_label.config(text=current_task.title)
+        # Update task title with optional prefix
+        task_prefix = getattr(schedule, 'task_prefix', 'Now')  # Default to 'Now'
+        if task_prefix:
+            title_text = f"{task_prefix}: {current_task.title}"
+        else:
+            title_text = current_task.title
+        self.task_title_label.config(text=title_text)
 
         # Update countdown
         remaining = current_task.remaining_seconds
@@ -265,9 +324,26 @@ class RunWindow:
         status_text = self.time_service.get_friendly_time_remaining(remaining)
         self.status_label.config(text=status_text)
 
-        # Update next task info
+        # Update next task info with start time if available
         if next_task:
-            next_text = f"Next: {next_task.title} ({self.time_service.format_duration(next_task.duration_seconds, short=True)})"
+            duration_str = self.time_service.format_duration(next_task.duration_seconds, short=True)
+
+            # Add start time if task has absolute_start_time
+            if hasattr(next_task, 'absolute_start_time') and next_task.absolute_start_time:
+                # Convert 24-hour to 12-hour format for display
+                try:
+                    hour, minute = map(int, next_task.absolute_start_time.split(':'))
+                    ampm = 'am' if hour < 12 else 'pm'
+                    display_hour = hour if hour <= 12 else hour - 12
+                    if display_hour == 0:
+                        display_hour = 12
+                    time_str = f"{display_hour}:{minute:02d}{ampm}"
+                    next_text = f"Next: {next_task.title} ({duration_str}, starts at {time_str})"
+                except:
+                    next_text = f"Next: {next_task.title} ({duration_str})"
+            else:
+                next_text = f"Next: {next_task.title} ({duration_str})"
+
             self.next_task_label.config(text=next_text)
         else:
             self.next_task_label.config(text="Last task in schedule")
@@ -284,6 +360,10 @@ class RunWindow:
             self.countdown_label.config(fg="#FFA500")  # Orange for last 5 minutes
         else:
             self.countdown_label.config(fg=self.theme.accent_3)  # Normal color
+
+        # Update ticker if enabled
+        if current_task.display.ticker_enabled:
+            self._update_ticker()
 
     def _update_clock(self):
         """Update the clock display"""
@@ -355,3 +435,95 @@ class RunWindow:
     def destroy(self):
         """Destroy the window"""
         self.window.destroy()
+
+    def _update_ticker(self):
+        """Update ticker message and animate"""
+        if not self.current_task or not self.current_task.display.ticker_enabled:
+            # Hide ticker if not enabled
+            self.ticker_frame.pack_forget()
+            return
+
+        # Show ticker frame
+        self.ticker_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+        # Build ticker message from placeholders
+        ticker_text = self.current_task.display.ticker_text
+        if not ticker_text:
+            return
+
+        # Replace placeholders
+        message = ticker_text.replace("[TASK_NAME]", self.current_task.title)
+
+        if "[TIME_REMAINING]" in message:
+            time_remaining = self.time_service.format_seconds(self.current_task.remaining_seconds)
+            message = message.replace("[TIME_REMAINING]", time_remaining)
+
+        if "[NEXT_TASK]" in message and self.next_task:
+            message = message.replace("[NEXT_TASK]", self.next_task.title)
+        elif "[NEXT_TASK]" in message:
+            message = message.replace("Next: [NEXT_TASK]", "Last Task")
+            message = message.replace("[NEXT_TASK]", "None")
+
+        # Only update if message changed
+        if message != self.ticker_message:
+            self.ticker_message = message
+            self.ticker_offset = 0
+            if self.ticker_text_id:
+                self.ticker_canvas.delete(self.ticker_text_id)
+
+            # Create scrolling text
+            self.ticker_text_id = self.ticker_canvas.create_text(
+                self.ticker_canvas.winfo_width(),
+                25,
+                text=self.ticker_message,
+                font=(FONT_FAMILY, 18, 'bold'),
+                fill='white',
+                anchor='w'
+            )
+
+        # Animate ticker
+        self._animate_ticker()
+
+    def _animate_ticker(self):
+        """Animate ticker scrolling"""
+        if not self.current_task or not self.current_task.display.ticker_enabled:
+            return
+
+        if not self.ticker_text_id:
+            return
+
+        # Get speed from current task display options
+        speed = self.current_task.display.ticker_speed
+        direction = self.current_task.display.ticker_direction
+
+        # Move text
+        if direction == "left":
+            self.ticker_canvas.move(self.ticker_text_id, -speed, 0)
+        else:
+            self.ticker_canvas.move(self.ticker_text_id, speed, 0)
+
+        # Get current position
+        coords = self.ticker_canvas.coords(self.ticker_text_id)
+        if not coords:
+            return
+
+        x_pos = coords[0]
+
+        # Reset position if scrolled off screen
+        canvas_width = self.ticker_canvas.winfo_width()
+        bbox = self.ticker_canvas.bbox(self.ticker_text_id)
+
+        if bbox:
+            text_width = bbox[2] - bbox[0]
+
+            if direction == "left":
+                # Reset to right side when fully scrolled off left
+                if x_pos + text_width < 0:
+                    self.ticker_canvas.coords(self.ticker_text_id, canvas_width, 25)
+            else:
+                # Reset to left side when fully scrolled off right
+                if x_pos > canvas_width:
+                    self.ticker_canvas.coords(self.ticker_text_id, -text_width, 25)
+
+        # Continue animation
+        self.ticker_canvas.after(50, self._animate_ticker)

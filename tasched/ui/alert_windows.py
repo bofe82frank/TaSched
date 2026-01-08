@@ -148,11 +148,16 @@ class TimeUpWindow:
         self.resource = get_resource_service()
         self.audio = get_audio_service()
         self.auto_close_id = None
+        self.is_muted = False
+        self.mute_button = None
 
     def show(self, task: Task, fullscreen: bool = True, next_task_title: str = None):
         """Show time-up window"""
         if self.window:
             self.window.destroy()
+
+        # Reset mute state for new window
+        self.is_muted = False
 
         self.window = tk.Toplevel(self.parent)
         self.window.title("Time's Up!")
@@ -252,17 +257,17 @@ class TimeUpWindow:
         dismiss_button.pack(side=tk.LEFT, padx=10)
 
         # Mute button
-        mute_button = tk.Button(
+        self.mute_button = tk.Button(
             button_frame,
             text="🔇 Mute",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL),
-            command=self._mute_audio,
+            command=self._toggle_mute,
             bg=self.theme.accent_2,
             fg=self.theme.primary_text,
             padx=20,
             pady=10
         )
-        mute_button.pack(side=tk.LEFT, padx=10)
+        self.mute_button.pack(side=tk.LEFT, padx=10)
 
         # Help text
         help_label = tk.Label(
@@ -318,9 +323,19 @@ class TimeUpWindow:
         y = (self.window.winfo_screenheight() // 2) - (height // 2)
         self.window.geometry(f'{width}x{height}+{x}+{y}')
 
-    def _mute_audio(self):
-        """Mute the time-up sound"""
-        self.audio.stop()
+    def _toggle_mute(self):
+        """Toggle mute/unmute for time-up sound"""
+        self.is_muted = not self.is_muted
+
+        if self.is_muted:
+            self.audio.stop()
+            if self.mute_button:
+                self.mute_button.config(text="🔊 Unmute")
+        else:
+            # Re-enable audio service
+            self.audio.enable()
+            if self.mute_button:
+                self.mute_button.config(text="🔇 Mute")
 
     def dismiss(self):
         """Dismiss the window"""

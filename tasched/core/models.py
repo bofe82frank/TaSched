@@ -148,6 +148,7 @@ class Schedule:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+    task_prefix: str = "Now"  # Prefix for current task display (e.g., "Now", "Ongoing", etc.)
 
     def add_task(self, task: Task):
         """Add a task to the schedule"""
