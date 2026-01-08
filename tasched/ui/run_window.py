@@ -45,6 +45,10 @@ class RunWindow:
         self.ticker_offset = 0
         self.ticker_enabled = False
 
+        # Timer IDs for cleanup
+        self.clock_timer_id = None
+        self.ticker_timer_id = None
+
         # Configure window
         self._setup_window()
         self._create_widgets()
@@ -376,7 +380,7 @@ class RunWindow:
         """Update the clock display"""
         current_time = self.time_service.get_current_time()
         self.clock_label.config(text=current_time)
-        self.window.after(1000, self._update_clock)
+        self.clock_timer_id = self.window.after(1000, self._update_clock)
 
     def toggle_pause(self):
         """Toggle pause/resume"""
@@ -440,7 +444,21 @@ class RunWindow:
         self.window.withdraw()
 
     def destroy(self):
-        """Destroy the window"""
+        """Destroy the window and cancel all timers"""
+        # Cancel clock timer
+        if self.clock_timer_id:
+            self.window.after_cancel(self.clock_timer_id)
+            self.clock_timer_id = None
+
+        # Cancel ticker timer
+        if self.ticker_timer_id:
+            try:
+                self.ticker_canvas.after_cancel(self.ticker_timer_id)
+            except:
+                pass
+            self.ticker_timer_id = None
+
+        # Destroy window
         self.window.destroy()
 
     def _update_ticker(self):
@@ -533,4 +551,4 @@ class RunWindow:
                     self.ticker_canvas.coords(self.ticker_text_id, -text_width, 25)
 
         # Continue animation (100ms delay for smoother, slower scrolling)
-        self.ticker_canvas.after(100, self._animate_ticker)
+        self.ticker_timer_id = self.ticker_canvas.after(100, self._animate_ticker)
