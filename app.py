@@ -81,12 +81,8 @@ class TaSchedApp:
     def _start_from_setup(self, schedule: Schedule):
         """Start schedule from setup window"""
         try:
-            print(f"DEBUG: _start_from_setup called with schedule: {schedule.name}")
-            print(f"DEBUG: Schedule has {len(schedule.tasks)} tasks")
-
             # Load into scheduler
             self.scheduler.load_schedule(schedule)
-            print("DEBUG: Schedule loaded into scheduler")
 
             # Create run window
             self.run_window = RunWindow(
@@ -97,15 +93,12 @@ class TaSchedApp:
                 on_force_next_callback=self.scheduler.force_next_task,
                 on_stop_callback=self._stop_schedule
             )
-            print("DEBUG: RunWindow created")
 
             # Hide setup window
             self.root.withdraw()
-            print("DEBUG: Setup window hidden")
 
             # Start schedule
             self.scheduler.start()
-            print("DEBUG: Scheduler started")
 
         except Exception as e:
             messagebox.showerror(
