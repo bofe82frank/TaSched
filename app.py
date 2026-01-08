@@ -162,8 +162,9 @@ class TaSchedApp:
                 self.run_window.destroy()
                 self.run_window = None
 
-            # Keep setup window hidden - user can reopen from taskbar if needed
-            # Don't show: self.root.deiconify()
+            # Show setup window again so user can create new schedule
+            self.root.deiconify()
+            self.root.lift()
 
     def run(self):
         """Run the application"""

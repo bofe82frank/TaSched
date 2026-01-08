@@ -189,11 +189,11 @@ class RunWindow:
 
         self.pause_button = tk.Button(
             button_frame,
-            text="⏸ Pause",
+            text="⏸ Pause (P)",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
             command=self.toggle_pause,
             **self.theme.get_button_style(),
-            width=12
+            width=14
         )
         self.pause_button.pack(side=tk.LEFT, padx=10)
 
@@ -201,38 +201,38 @@ class RunWindow:
         self.is_muted = False
         self.mute_button = tk.Button(
             button_frame,
-            text="🔇 Mute",
+            text="🔇 Mute (M)",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
             command=self.toggle_mute,
             **self.theme.get_button_style(),
-            width=12
+            width=14
         )
         self.mute_button.pack(side=tk.LEFT, padx=10)
 
         skip_button = tk.Button(
             button_frame,
-            text="⏭ Skip Task",
+            text="⏭ Skip (S)",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
             command=self._on_skip,
             **self.theme.get_button_style(),
-            width=12
+            width=14
         )
         skip_button.pack(side=tk.LEFT, padx=10)
 
         # Next Task button (forces immediate start, adjusts remaining times)
         next_button = tk.Button(
             button_frame,
-            text="⏭ Next Task",
+            text="⏭ Next (N)",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
             command=self._on_force_next,  # Different from skip
             **self.theme.get_button_style(),
-            width=12
+            width=14
         )
         next_button.pack(side=tk.LEFT, padx=10)
 
         stop_button = tk.Button(
             button_frame,
-            text="⏹ Stop",
+            text="⏹ Stop (X)",
             font=(FONT_FAMILY, FONT_SIZE_NORMAL, 'bold'),
             command=self._on_stop,
             bg=self.theme.accent_2,
@@ -243,11 +243,16 @@ class RunWindow:
             bd=0,
             padx=20,
             pady=10,
-            width=12
+            width=14
         )
         stop_button.pack(side=tk.LEFT, padx=10)
 
-        # Ticker (scrolling message bar)
+        # Footer bar (pack first so it's at the bottom)
+        footer_frame = tk.Frame(main_frame, bg=self.theme.background, height=40)
+        footer_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=20, pady=(5, 10))
+        footer_frame.pack_propagate(False)
+
+        # Ticker (scrolling message bar) - pack after footer so it's above it
         self.ticker_frame = tk.Frame(main_frame, bg=self.theme.accent_1, height=50)
         self.ticker_frame.pack(fill=tk.X, side=tk.BOTTOM)
         self.ticker_frame.pack_propagate(False)
@@ -258,11 +263,6 @@ class RunWindow:
 
         self.ticker_text_id = None
         self.ticker_message = ""
-
-        # Footer bar
-        footer_frame = tk.Frame(main_frame, bg=self.theme.background, height=40)
-        footer_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=20, pady=(10, 5))
-        footer_frame.pack_propagate(False)
 
         # Help text on left
         help_text = "P: Pause | M: Mute | S: Skip | N: Next | X: Stop | F11: Fullscreen | ESC: Exit Fullscreen"
@@ -376,11 +376,11 @@ class RunWindow:
         self.is_paused = not self.is_paused
 
         if self.is_paused:
-            self.pause_button.config(text="▶ Resume")
+            self.pause_button.config(text="▶ Resume (P)")
             if self.on_pause_callback:
                 self.on_pause_callback()
         else:
-            self.pause_button.config(text="⏸ Pause")
+            self.pause_button.config(text="⏸ Pause (P)")
             if self.on_resume_callback:
                 self.on_resume_callback()
 
@@ -393,10 +393,10 @@ class RunWindow:
 
         if self.is_muted:
             audio.disable()
-            self.mute_button.config(text="🔊 Unmute")
+            self.mute_button.config(text="🔊 Unmute (M)")
         else:
             audio.enable()
-            self.mute_button.config(text="🔇 Mute")
+            self.mute_button.config(text="🔇 Mute (M)")
 
     def toggle_fullscreen(self):
         """Toggle fullscreen mode"""
@@ -525,5 +525,5 @@ class RunWindow:
                 if x_pos > canvas_width:
                     self.ticker_canvas.coords(self.ticker_text_id, -text_width, 25)
 
-        # Continue animation
-        self.ticker_canvas.after(50, self._animate_ticker)
+        # Continue animation (100ms delay for smoother, slower scrolling)
+        self.ticker_canvas.after(100, self._animate_ticker)
